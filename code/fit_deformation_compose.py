@@ -13,6 +13,12 @@ from util import bilinear_sampler
 sess = tf.InteractiveSession()
 
 
+def dx(t):
+    return t[:, 1:, :, :] - t[:, :-1, :, :]
+def dy(t):
+    return t[:, :, 1:, :] - t[:, :, :-1, :]
+
+
 spc = odl.uniform_discr([-1, -1], [1, 1], [128, 128], interp='linear', dtype='float32')
 img = odl.phantom.shepp_logan(spc, True)
 displacement = spc.tangent_bundle.element([lambda x: 0.1 * x[0] ** 2,
@@ -48,8 +54,11 @@ for ni in range(n):
 f_result = bilinear_sampler(f_0, x_iter[..., 0], y_iter[..., 0])
 
 with tf.name_scope('optimizer'):
-    loss = tf.nn.l2_loss(v) + tf.nn.l2_loss(f_result - f_1)
-    opt_func = tf.train.AdamOptimizer(learning_rate=1e-4)
+    loss = (tf.nn.l2_loss(v) +
+            10 * tf.nn.l2_loss(dx(v)) +
+            10 * tf.nn.l2_loss(dy(v)) +
+            tf.nn.l2_loss(f_result - f_1))
+    opt_func = tf.train.AdamOptimizer(learning_rate=1e-3)
     optimizer = opt_func.minimize(loss)
 
 
@@ -57,7 +66,7 @@ callback = odl.solvers.CallbackShow(step=1) * spc.element
 
 sess.run(tf.global_variables_initializer())
 
-for i in range(1000):
+for i in range(10000):
     _, f_result_result, loss_result = sess.run([optimizer, f_result, loss])
 
     print(loss_result)
