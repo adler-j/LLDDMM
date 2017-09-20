@@ -63,7 +63,7 @@ callback = odl.solvers.CallbackShow(step=10) * (spc ** (n + 1)).element
 
 sess.run(tf.global_variables_initializer())
 
-for i in range(1000):
+for i in range(10000):
     _, f_values_result, loss_result = sess.run([optimizer, f_values, loss])
 
     print(loss_result)
